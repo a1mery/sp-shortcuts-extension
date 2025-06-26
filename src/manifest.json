@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "SharePoint Shortcuts",
+  "version": "1.0.0",
+  "description": "Quick access to SharePoint pages via right-click context menu",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.sharepoint.com/*",
+    "*://*/*.sharepoint.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.sharepoint.com/*",
+        "*://*/*.sharepoint.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SharePoint Shortcuts"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
