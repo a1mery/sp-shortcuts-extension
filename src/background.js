@@ -106,7 +106,7 @@ function createContextMenus() {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'open-settings') {
-    chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
+    chrome.runtime.openOptionsPage();
     return;
   }
 
