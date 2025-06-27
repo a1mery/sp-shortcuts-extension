@@ -41,15 +41,47 @@ function displayShortcuts() {
                 ${shortcut.description ? `<div class="shortcut-description">${escapeHtml(shortcut.description)}</div>` : ''}
             </div>
             <div class="shortcut-actions">
-                <button class="btn-small btn-edit" onclick="editShortcut(${index})" title="Edit shortcut">
+                <button class="btn-small btn-edit" data-action="edit" data-index="${index}" title="Edit shortcut">
                     <span>✏️</span>
                 </button>
-                <button class="btn-small btn-delete" onclick="deleteShortcut(${index})" title="Delete shortcut">
+                <button class="btn-small btn-delete" data-action="delete" data-index="${index}" title="Delete shortcut">
                     <span>🗑️</span>
                 </button>
             </div>
         </div>
     `).join('');
+    
+    // Add event listeners for the shortcut action buttons
+    setupShortcutActionListeners();
+}
+
+// Setup event listeners for shortcut action buttons
+function setupShortcutActionListeners() {
+    // Remove existing listeners to prevent duplicates
+    document.querySelectorAll('.btn-edit, .btn-delete').forEach(btn => {
+        btn.removeEventListener('click', handleShortcutAction);
+    });
+    
+    // Add new listeners
+    document.querySelectorAll('.btn-edit, .btn-delete').forEach(btn => {
+        btn.addEventListener('click', handleShortcutAction);
+    });
+}
+
+// Handle shortcut action button clicks
+function handleShortcutAction(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = event.currentTarget;
+    const action = button.getAttribute('data-action');
+    const index = parseInt(button.getAttribute('data-index'), 10);
+    
+    if (action === 'edit') {
+        editShortcut(index);
+    } else if (action === 'delete') {
+        deleteShortcut(index);
+    }
 }
 
 // Update shortcuts count badge
