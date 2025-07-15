@@ -9,8 +9,7 @@
     "storage"
   ],
   "host_permissions": [
-    "*://*.sharepoint.com/*",
-    "*://*/*.sharepoint.com/*"
+    "*://*.sharepoint.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -18,10 +17,10 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.sharepoint.com/*",
-        "*://*/*.sharepoint.com/*"
+        "*://*.sharepoint.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ],
   "options_ui": {

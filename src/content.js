@@ -29,13 +29,15 @@ function getSharePointSiteUrl() {
       }
     }
 
-    // Method 3: Try to extract from meta tags
-    const metaTags = document.querySelectorAll('meta[name="msapplication-starturl"], meta[property="og:url"]');
-    for (const meta of metaTags) {
-      const content = meta.getAttribute('content');
-      if (content && content.includes('.sharepoint.com')) {
-        const url = new URL(content);
-        return `${url.protocol}//${url.host}${url.pathname.split('/').slice(0, 4).join('/')}`;
+    // Method 3: Try to extract from meta tags (only check if we're on a SharePoint domain)
+    if (window.location.hostname.includes('sharepoint.com')) {
+      const metaTags = document.querySelectorAll('meta[name="msapplication-starturl"], meta[property="og:url"]');
+      for (const meta of metaTags) {
+        const content = meta.getAttribute('content');
+        if (content && (content.includes('.sharepoint.com') || content.includes('.sharepoint-df.com'))) {
+          const url = new URL(content);
+          return `${url.protocol}//${url.host}${url.pathname.split('/').slice(0, 4).join('/')}`;
+        }
       }
     }
 
@@ -56,40 +58,46 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Optional: Add visual indicator when extension is active
-function addExtensionIndicator() {
-  if (document.querySelector('#sp-shortcuts-indicator')) return;
-  
-  const indicator = document.createElement('div');
-  indicator.id = 'sp-shortcuts-indicator';
-  indicator.style.cssText = `
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: #0078d4;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 3px;
-    font-size: 12px;
-    z-index: 10000;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    opacity: 0.8;
-    pointer-events: none;
-  `;
-  indicator.textContent = 'SP Shortcuts Active';
-  document.body.appendChild(indicator);
-  
-  // Auto-hide after 3 seconds
-  setTimeout(() => {
-    if (indicator.parentNode) {
-      indicator.parentNode.removeChild(indicator);
+// Only add indicator if we're actually on a SharePoint site
+if (window.location.hostname.includes('sharepoint.com')) {
+  // Optional: Add visual indicator when extension is active (only in dev mode)
+  function addExtensionIndicator() {
+    // Only show in development or if explicitly enabled
+    if (chrome.runtime.getManifest().name.includes('Dev') || localStorage.getItem('sp-shortcuts-debug') === 'true') {
+      if (document.querySelector('#sp-shortcuts-indicator')) return;
+      
+      const indicator = document.createElement('div');
+      indicator.id = 'sp-shortcuts-indicator';
+      indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #0078d4;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 12px;
+        z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        opacity: 0.8;
+        pointer-events: none;
+      `;
+      indicator.textContent = 'SP Shortcuts Active';
+      document.body.appendChild(indicator);
+      
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 3000);
     }
-  }, 3000);
-}
+  }
 
-// Initialize when page loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', addExtensionIndicator);
-} else {
-  addExtensionIndicator();
+  // Initialize when page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', addExtensionIndicator);
+  } else {
+    addExtensionIndicator();
+  }
 }
