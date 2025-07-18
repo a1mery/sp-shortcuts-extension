@@ -161,8 +161,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Getting Help
 
 - **Issues**: Report bugs or feature requests on GitHub
-- **Questions**: Check the FAQ in the wiki
-- **Security**: Report security issues privately
 
 ## 🔄 Changelog
 
