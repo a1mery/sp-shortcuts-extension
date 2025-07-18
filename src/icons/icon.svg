@@ -1,0 +1,32 @@
+<!-- SharePoint Shortcuts Icon SVG -->
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="128" height="128" rx="16" fill="#0078d4"/>
+  
+  <!-- SharePoint 'SP' Text -->
+  <text x="64" y="45" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="bold" 
+        text-anchor="middle" fill="white">SP</text>
+  
+  <!-- Shortcut arrows -->
+  <g fill="white" opacity="0.9">
+    <!-- Arrow 1 -->
+    <path d="M25 75 L35 70 L35 73 L45 73 L45 77 L35 77 L35 80 Z"/>
+    <!-- Arrow 2 -->
+    <path d="M55 85 L65 80 L65 83 L75 83 L75 87 L65 87 L65 90 Z"/>
+    <!-- Arrow 3 -->
+    <path d="M85 75 L95 70 L95 73 L105 73 L105 77 L95 77 L95 80 Z"/>
+  </g>
+  
+  <!-- Small dots for menu representation -->
+  <g fill="white" opacity="0.7">
+    <circle cx="25" cy="95" r="2"/>
+    <circle cx="35" cy="95" r="2"/>
+    <circle cx="45" cy="95" r="2"/>
+    <circle cx="55" cy="105" r="2"/>
+    <circle cx="65" cy="105" r="2"/>
+    <circle cx="75" cy="105" r="2"/>
+    <circle cx="85" cy="95" r="2"/>
+    <circle cx="95" cy="95" r="2"/>
+    <circle cx="105" cy="95" r="2"/>
+  </g>
+</svg>

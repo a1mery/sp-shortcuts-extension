@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SharePoint Shortcuts - Options</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">SP</div>
+                    <div class="logo-text">
+                        <h1>SP Shortcuts</h1>
+                        <p>Manage your SharePoint shortcuts</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button id="export-shortcuts" class="btn btn-outline">
+                        <span class="icon">📥</span>
+                        Export
+                    </button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                    <button id="import-shortcuts" class="btn btn-outline">
+                        <span class="icon">📤</span>
+                        Import
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="content-grid">
+                <!-- Left Panel - Shortcuts List -->
+                <section class="shortcuts-panel">
+                    <div class="panel-header">
+                        <h2>Current Shortcuts</h2>
+                        <span id="shortcuts-count" class="count-badge">0 shortcuts</span>
+                    </div>
+                    
+                    <div class="shortcuts-container">
+                        <div id="shortcuts-list" class="shortcuts-list">
+                            <!-- Shortcuts will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="panel-footer">
+                        <button id="reset-defaults" class="btn btn-secondary">
+                            <span class="icon">🔄</span>
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Right Panel - Add/Edit Shortcut -->
+                <section class="editor-panel">
+                    <div class="panel-header">
+                        <h2 id="editor-title">Add New Shortcut</h2>
+                    </div>
+                    
+                    <form id="shortcut-form" class="shortcut-form">
+                        <div class="form-group">
+                            <label for="shortcut-title" class="form-label">
+                                <span class="label-text">Title</span>
+                                <span class="label-required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="shortcut-title" 
+                                class="form-input"
+                                placeholder="e.g., Custom List"
+                                required
+                                maxlength="50"
+                            >
+                            <small class="form-help">Display name for the shortcut (max 50 characters)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shortcut-path" class="form-label">
+                                <span class="label-text">Path</span>
+                                <span class="label-required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="shortcut-path" 
+                                class="form-input"
+                                placeholder="e.g., /Lists/CustomList or /_layouts/15/settings.aspx"
+                                required
+                            >
+                            <small class="form-help">
+                                Path relative to SharePoint site root. Examples:<br>
+                                • <code>/_layouts/15/settings.aspx</code> (Site Settings)<br>
+                                • <code>/Lists/MyList</code> (Custom List)<br>
+                                • <code>/_catalogs/apps</code> (App Catalog)
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shortcut-description" class="form-label">
+                                <span class="label-text">Description</span>
+                                <span class="label-optional">(optional)</span>
+                            </label>
+                            <textarea 
+                                id="shortcut-description" 
+                                class="form-textarea"
+                                placeholder="Optional description for this shortcut"
+                                maxlength="200"
+                                rows="3"
+                            ></textarea>
+                            <small class="form-help">Optional description (max 200 characters)</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" id="save-shortcut" class="btn btn-primary">
+                                <span class="icon">💾</span>
+                                <span id="save-text">Add Shortcut</span>
+                            </button>
+                            <button type="button" id="cancel-edit" class="btn btn-secondary" style="display: none;">
+                                <span class="icon">❌</span>
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Quick Templates -->
+                    <div class="templates-section">
+                        <h3>Quick Templates</h3>
+                        <div class="templates-grid">
+                            <button class="template-btn" data-title="Site Information" data-path="/_layouts/15/prjsetng.aspx">
+                                <span class="template-icon">ℹ️</span>
+                                Site Information
+                            </button>
+                            <button class="template-btn" data-title="Content Types" data-path="/_layouts/15/mngctype.aspx">
+                                <span class="template-icon">📋</span>
+                                Content Types
+                            </button>
+                            <button class="template-btn" data-title="User Alerts" data-path="/_layouts/15/SubEdit.aspx">
+                                <span class="template-icon">🔔</span>
+                                User Alerts
+                            </button>
+                            <button class="template-btn" data-title="Site Languages" data-path="/_layouts/15/muisetng.aspx">
+                                <span class="template-icon">📄</span>
+                                Site languages
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Status Toast -->
+        <div id="status-toast" class="status-toast">
+            <div class="status-content">
+                <span id="status-icon" class="status-icon"></span>
+                <span id="status-message" class="status-message"></span>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirm-modal" class="modal">
+            <div class="modal-content">
+                <h3 id="confirm-title">Confirm Action</h3>
+                <p id="confirm-message">Are you sure?</p>
+                <div class="modal-actions">
+                    <button id="confirm-yes" class="btn btn-primary">Yes</button>
+                    <button id="confirm-no" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
