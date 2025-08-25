@@ -45,40 +45,16 @@ const LIST_SHORTCUTS = [
     id: 'list-settings',
     title: 'List Settings',
     pathTemplate: '/_layouts/15/listedit.aspx?List={listId}'
-  },
-  {
-    id: 'list-permissions',
-    title: 'List Permissions',
-    pathTemplate: '/_layouts/15/user.aspx?List={listId}&obj={listId},list&scope=web'
-  },
-  {
-    id: 'list-columns',
-    title: 'List Columns',
-    pathTemplate: '/_layouts/15/ListEdit.aspx?List={listId}&view=8'
-  },
-  {
-    id: 'list-views',
-    title: 'List Views',
-    pathTemplate: '/_layouts/15/ViewEdit.aspx?List={listId}'
-  },
-  {
-    id: 'list-workflow-settings',
-    title: 'Workflow Settings',
-    pathTemplate: '/_layouts/15/Workflow.aspx?List={listId}'
-  },
-  {
-    id: 'list-validation-settings',
-    title: 'Validation Settings',
-    pathTemplate: '/_layouts/15/ListEdit.aspx?List={listId}&view=7'
   }
 ];
 
 // Store current list info globally for context menu creation
 let currentListInfo = null;
 let contextMenuUpdateTimeout = null;
+let isCreatingMenus = false; // Flag to prevent concurrent menu creation
 
 // Debounced context menu creation function
-function createContextMenusDebounced(tabId = null, delay = 300) {
+function createContextMenusDebounced(tabId = null, delay = 50) { // Reduced from 300ms to 50ms
   // Clear any existing timeout
   if (contextMenuUpdateTimeout) {
     clearTimeout(contextMenuUpdateTimeout);
@@ -93,6 +69,12 @@ function createContextMenusDebounced(tabId = null, delay = 300) {
 // Quick function to create basic menu without list shortcuts (for immediate navigation feedback)
 function createContextMenusWithoutList() {
   return new Promise((resolve) => {
+    if (isCreatingMenus) {
+      resolve();
+      return;
+    }
+    
+    isCreatingMenus = true;
     chrome.contextMenus.removeAll(() => {
       setTimeout(() => {
         // Create parent menu
@@ -104,12 +86,17 @@ function createContextMenusWithoutList() {
             '*://*.sharepoint.com/*',
             '*://*/*.sharepoint.com/*'
           ]
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.log('Error creating parent menu:', chrome.runtime.lastError.message);
+          }
+          
+          // Only add site-level shortcuts (no list shortcuts)
+          createMenuItems(null);
+          isCreatingMenus = false;
+          resolve();
         });
-
-        // Only add site-level shortcuts (no list shortcuts)
-        createMenuItems(null);
-        resolve();
-      }, 50); // Shorter delay for immediate response
+      }, 10); // Reduced from 50ms to 10ms for even faster response
     });
   });
 }
@@ -132,6 +119,12 @@ chrome.runtime.onInstalled.addListener(() => {
 async function createContextMenus(tabId = null) {
   // Remove existing menus first and wait for completion
   return new Promise((resolve) => {
+    if (isCreatingMenus) {
+      resolve();
+      return;
+    }
+    
+    isCreatingMenus = true;
     chrome.contextMenus.removeAll(() => {
       // Small delay to ensure cleanup is complete
       setTimeout(() => {
@@ -144,32 +137,43 @@ async function createContextMenus(tabId = null) {
             '*://*.sharepoint.com/*',
             '*://*/*.sharepoint.com/*'
           ]
-        });
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.log('Error creating parent menu:', chrome.runtime.lastError.message);
+            isCreatingMenus = false;
+            resolve();
+            return;
+          }
 
-        // If we have a specific tab, get list info first
-        if (tabId) {
-          chrome.tabs.sendMessage(tabId, { action: 'getListInfo' }, (response) => {
-            if (chrome.runtime.lastError) {
-              // Handle case where content script isn't ready or page doesn't support it
-              console.log('Could not get list info:', chrome.runtime.lastError.message);
-              currentListInfo = null;
-              createMenuItems(null);
-              resolve();
-            } else if (response && response.listInfo) {
-              currentListInfo = response.listInfo;
-              createMenuItems(response.listInfo);
-              resolve();
-            } else {
-              currentListInfo = null;
-              createMenuItems(null);
-              resolve();
-            }
-          });
-        } else {
-          createMenuItems(null);
-          resolve();
-        }
-      }, 100); // Small delay to prevent race conditions
+          // If we have a specific tab, get list info first
+          if (tabId) {
+            chrome.tabs.sendMessage(tabId, { action: 'getListInfo' }, (response) => {
+              if (chrome.runtime.lastError) {
+                // Handle case where content script isn't ready or page doesn't support it
+                console.log('Could not get list info:', chrome.runtime.lastError.message);
+                currentListInfo = null;
+                createMenuItems(null);
+                isCreatingMenus = false;
+                resolve();
+              } else if (response && response.listInfo) {
+                currentListInfo = response.listInfo;
+                createMenuItems(response.listInfo);
+                isCreatingMenus = false;
+                resolve();
+              } else {
+                currentListInfo = null;
+                createMenuItems(null);
+                isCreatingMenus = false;
+                resolve();
+              }
+            });
+          } else {
+            createMenuItems(null);
+            isCreatingMenus = false;
+            resolve();
+          }
+        });
+      }, 10); // Reduced from 100ms to 10ms
     });
   });
 }
@@ -186,19 +190,6 @@ function createMenuItems(listInfo) {
       // Add list-specific shortcuts if we're on a list page
       if (listInfo && listInfo.listTitle) {
         console.log('SP Shortcuts: Adding list-specific shortcuts for:', listInfo.listTitle);
-        
-        // Add list shortcuts section
-        chrome.contextMenus.create({
-          id: 'list-section-header',
-          parentId: 'sp-shortcuts',
-          title: `📋 ${listInfo.listTitle}`,
-          contexts: ['page'],
-          enabled: false // Header item, not clickable
-        }, () => {
-          if (chrome.runtime.lastError) {
-            console.log('Error creating list-section-header:', chrome.runtime.lastError.message);
-          }
-        });
 
         LIST_SHORTCUTS.forEach((shortcut) => {
           // Only add shortcuts that work without listId, or when we have listId
@@ -206,7 +197,7 @@ function createMenuItems(listInfo) {
             chrome.contextMenus.create({
               id: shortcut.id,
               parentId: 'sp-shortcuts',
-              title: `  ${shortcut.title}`,
+              title: `${shortcut.title}`,
               contexts: ['page'],
               documentUrlPatterns: [
                 '*://*.sharepoint.com/*',
@@ -219,20 +210,6 @@ function createMenuItems(listInfo) {
             });
           }
         });
-
-        // Add separator between list and site shortcuts
-        chrome.contextMenus.create({
-          id: 'list-separator',
-          parentId: 'sp-shortcuts',
-          type: 'separator',
-          contexts: ['page']
-        }, () => {
-          if (chrome.runtime.lastError) {
-            console.log('Error creating list-separator:', chrome.runtime.lastError.message);
-          }
-        });
-      } else {
-        console.log('SP Shortcuts: No list info, skipping list-specific shortcuts');
       }
       
       // Add regular site shortcuts
@@ -295,21 +272,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (listShortcut) {
     // Handle list-specific shortcuts
     chrome.tabs.sendMessage(tab.id, { action: 'getListInfo' }, (response) => {
-      if (response && response.listInfo) {
+      if (response && response.listInfo && response.listInfo.listId) {
         const listInfo = response.listInfo;
-        let targetPath = listShortcut.pathTemplate;
-        
-        if (listInfo.listId) {
-          targetPath = targetPath.replace('{listId}', listInfo.listId);
-        } else if (listInfo.listName) {
-          // Fallback for shortcuts that can work with list name
-          targetPath = targetPath.replace('{listId}', encodeURIComponent(listInfo.listName));
-        }
-        
+        const targetPath = listShortcut.pathTemplate.replace('{listId}', listInfo.listId);
         const targetUrl = listInfo.webAbsoluteUrl + targetPath;
         chrome.tabs.create({ url: targetUrl });
       } else {
-        console.error('Could not determine list information');
+        console.error('Could not determine list information or missing listId');
       }
     });
     return;
@@ -360,8 +329,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       console.log('SP Shortcuts: Page complete, full refresh for tab', tabId);
       currentListInfo = null;
       
-      // Use debounced update to prevent rapid-fire updates
-      createContextMenusDebounced(tabId, 1500);
+      // Use faster debounced update
+      createContextMenusDebounced(tabId, 100); // Reduced from 1500ms to 100ms
     }
   }
 });
@@ -375,8 +344,8 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       currentListInfo = null;
       createContextMenusWithoutList();
       
-      // Then do full refresh after delay
-      createContextMenusDebounced(activeInfo.tabId, 500);
+      // Then do full refresh after shorter delay
+      createContextMenusDebounced(activeInfo.tabId, 100); // Reduced from 500ms to 100ms
     }
   });
 });
@@ -387,7 +356,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('SP Shortcuts: Received updateContextMenus request from tab', sender.tab?.id);
     // Clear cached list info when explicitly requested to update
     currentListInfo = null;
-    createContextMenusDebounced(sender.tab?.id, 100); // Shorter delay for explicit requests
+    createContextMenusDebounced(sender.tab?.id, 10); // Reduced from 100ms to 10ms for explicit requests
     sendResponse({ success: true });
   } else if (request.action === 'clearListShortcuts') {
     console.log('SP Shortcuts: Received clearListShortcuts request from tab', sender.tab?.id);
