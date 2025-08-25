@@ -1,16 +1,19 @@
 # SP Shortcuts Extension
 
-A Chrome extension that provides quick access to SharePoint admin pages and commonly used features through right-click context menus.
+A Chrome extension that provides quick access to SharePoint admin pages and list settings through right-click context menus.
 
 ## ✨ Features
 
 - **Quick Access**: Right-click on any SharePoint page to access admin shortcuts
+- **List-Specific Shortcuts**: When on SharePoint lists, get direct access to list settings and management
 - **Customizable**: Add, edit, and remove shortcuts through the options page
-- **Smart Detection**: Automatically detects your SharePoint site and constructs the correct URLs
+- **Smart Detection**: Automatically detects your SharePoint site and lists, constructs correct URLs
 - **Privacy-Focused**: Minimal permissions, no data collection, works entirely offline
 - **Import/Export**: Backup and share your shortcuts configuration
 
 ## 🚀 Default Shortcuts
+
+### Site-Level Shortcuts
 
 The extension comes with these built-in SharePoint shortcuts:
 
@@ -22,6 +25,17 @@ The extension comes with these built-in SharePoint shortcuts:
 - **Term Store Management** - Manage metadata terms
 - **Search Schema** - Configure search managed properties
 
+### List-Level Shortcuts - NEW
+
+When you're on a SharePoint list page, additional shortcuts appear:
+
+- **List Settings** - Access list configuration and settings
+- **List Permissions** - Manage list-specific permissions
+- **List Columns** - Manage list columns and field settings
+- **List Views** - Create and manage list views
+- **Workflow Settings** - Configure list workflows
+- **Validation Settings** - Set up list validation rules
+
 ## 🔧 How to Use
 
 ### Basic Usage
@@ -30,6 +44,13 @@ The extension comes with these built-in SharePoint shortcuts:
 2. **Right-click anywhere** on the page
 3. **Select a shortcut** from the "SP Shortcuts" menu
 4. **The admin page opens** in a new tab with the correct site URL
+
+### List-Specific Features - NEW
+
+1. **Navigate to a SharePoint list** (e.g., Documents library, Custom lists, etc.)
+2. **Right-click anywhere** on the list page
+3. **See list-specific shortcuts** at the top of the menu, showing the list name
+4. **Click any list shortcut** to access that list's management page
 
 ### Managing Shortcuts
 

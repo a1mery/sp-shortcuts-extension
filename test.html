@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test SharePoint List Detection</title>
+</head>
+<body>
+    <h1>SharePoint Extension Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        // Simulate SharePoint list detection logic
+        function testListDetection() {
+            const results = document.getElementById('results');
+            
+            // Test URLs
+            const testUrls = [
+                'https://tenant.sharepoint.com/sites/mysite/Lists/MyList/AllItems.aspx',
+                'https://tenant.sharepoint.com/sites/mysite/Lists/Documents/Forms/AllItems.aspx',
+                'https://tenant.sharepoint.com/sites/mysite/_layouts/15/listform.aspx?ListId=123',
+                'https://tenant.sharepoint.com/sites/mysite/SitePages/Home.aspx'
+            ];
+            
+            results.innerHTML = '<h2>List Detection Tests:</h2>';
+            
+            testUrls.forEach((url, index) => {
+                const isListPage = url.toLowerCase().includes('/lists/') || 
+                                 url.toLowerCase().includes('/forms/') ||
+                                 url.toLowerCase().includes('rootfolder=') ||
+                                 url.toLowerCase().includes('listedit.aspx') ||
+                                 url.toLowerCase().includes('allitems.aspx') ||
+                                 url.toLowerCase().includes('dispform.aspx') ||
+                                 url.toLowerCase().includes('editform.aspx') ||
+                                 url.toLowerCase().includes('newform.aspx');
+                
+                results.innerHTML += `<p><strong>Test ${index + 1}:</strong> ${url}<br>
+                                     <em>Is List Page:</em> ${isListPage ? 'YES' : 'NO'}</p>`;
+            });
+        }
+        
+        testListDetection();
+    </script>
+</body>
+</html>
