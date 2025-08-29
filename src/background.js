@@ -1,5 +1,27 @@
 // SharePoint Shortcuts Background Script
 
+// Debug logging system - only show logs in developer mode
+const isDevMode = () => {
+  try {
+    return chrome.runtime.getManifest().name.includes('Dev') || 
+           false; // Background script can't access localStorage, so default to false
+  } catch (error) {
+    return false;
+  }
+};
+
+const debugLog = (...args) => {
+  if (isDevMode()) {
+    console.log('SP Shortcuts:', ...args);
+  }
+};
+
+const debugError = (...args) => {
+  if (isDevMode()) {
+    console.error('SP Shortcuts:', ...args);
+  }
+};
+
 // Default SharePoint shortcuts
 const DEFAULT_SHORTCUTS = [
   {
@@ -54,7 +76,7 @@ let contextMenuUpdateTimeout = null;
 let isCreatingMenus = false; // Flag to prevent concurrent menu creation
 
 // Debounced context menu creation function
-function createContextMenusDebounced(tabId = null, delay = 50) { // Reduced from 300ms to 50ms
+function createContextMenusDebounced(tabId = null, delay = 50) {
   // Clear any existing timeout
   if (contextMenuUpdateTimeout) {
     clearTimeout(contextMenuUpdateTimeout);
@@ -96,14 +118,14 @@ function createContextMenusWithoutList() {
           isCreatingMenus = false;
           resolve();
         });
-      }, 10); // Reduced from 50ms to 10ms for even faster response
+      }, 10);
     });
   });
 }
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('SP Shortcuts extension installed');
+  debugLog('Extension installed');
   
   // Store default shortcuts if not already saved
   chrome.storage.sync.get(['shortcuts'], (result) => {
@@ -150,37 +172,40 @@ async function createContextMenus(tabId = null) {
             chrome.tabs.sendMessage(tabId, { action: 'getListInfo' }, (response) => {
               if (chrome.runtime.lastError) {
                 // Handle case where content script isn't ready or page doesn't support it
-                console.log('Could not get list info:', chrome.runtime.lastError.message);
+                debugLog('Could not get list info, showing site-level shortcuts only:', chrome.runtime.lastError.message);
                 currentListInfo = null;
-                createMenuItems(null);
+                createMenuItems(null); // This will create site-level shortcuts
                 isCreatingMenus = false;
                 resolve();
               } else if (response && response.listInfo) {
+                debugLog('Got list info, showing list + site shortcuts');
                 currentListInfo = response.listInfo;
                 createMenuItems(response.listInfo);
                 isCreatingMenus = false;
                 resolve();
               } else {
+                debugLog('No list info available, showing site-level shortcuts only');
                 currentListInfo = null;
-                createMenuItems(null);
+                createMenuItems(null); // This will create site-level shortcuts
                 isCreatingMenus = false;
                 resolve();
               }
             });
           } else {
-            createMenuItems(null);
+            debugLog('No tab specified, showing site-level shortcuts');
+            createMenuItems(null); // This will create site-level shortcuts
             isCreatingMenus = false;
             resolve();
           }
         });
-      }, 10); // Reduced from 100ms to 10ms
+      }, 10);
     });
   });
 }
 
 // Create menu items based on context
 function createMenuItems(listInfo) {
-  console.log('SP Shortcuts: Creating menu items with listInfo:', listInfo);
+  debugLog('Creating menu items with listInfo:', listInfo);
   
   // Get shortcuts from storage and create menu items
   chrome.storage.sync.get(['shortcuts'], (result) => {
@@ -318,7 +343,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     
     // Immediately clear list shortcuts on navigation start
     if (changeInfo.status === 'loading') {
-      console.log('SP Shortcuts: Navigation starting, immediately clearing list shortcuts for tab', tabId);
+      debugLog('Navigation starting, immediately clearing list shortcuts for tab', tabId);
       currentListInfo = null;
       // Create basic menu without list shortcuts immediately
       createContextMenusWithoutList();
@@ -326,11 +351,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     
     // Full refresh when page is complete
     if (changeInfo.status === 'complete') {
-      console.log('SP Shortcuts: Page complete, full refresh for tab', tabId);
+      debugLog('Page complete, full refresh for tab', tabId);
       currentListInfo = null;
       
       // Use faster debounced update
-      createContextMenusDebounced(tabId, 100); // Reduced from 1500ms to 100ms
+      createContextMenusDebounced(tabId, 100);
     }
   }
 });
@@ -340,12 +365,12 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
     if (tab.url && tab.url.includes('.sharepoint.com')) {
       // Immediately clear list shortcuts when switching tabs
-      console.log('SP Shortcuts: Tab activated, immediately clearing list shortcuts for tab', activeInfo.tabId);
+      debugLog('Tab activated, immediately clearing list shortcuts for tab', activeInfo.tabId);
       currentListInfo = null;
       createContextMenusWithoutList();
       
       // Then do full refresh after shorter delay
-      createContextMenusDebounced(activeInfo.tabId, 100); // Reduced from 500ms to 100ms
+      createContextMenusDebounced(activeInfo.tabId, 100);
     }
   });
 });
@@ -353,13 +378,13 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // Handle messages from content script or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'updateContextMenus') {
-    console.log('SP Shortcuts: Received updateContextMenus request from tab', sender.tab?.id);
+    debugLog('Received updateContextMenus request from tab', sender.tab?.id);
     // Clear cached list info when explicitly requested to update
     currentListInfo = null;
-    createContextMenusDebounced(sender.tab?.id, 10); // Reduced from 100ms to 10ms for explicit requests
+    createContextMenusDebounced(sender.tab?.id, 10);
     sendResponse({ success: true });
   } else if (request.action === 'clearListShortcuts') {
-    console.log('SP Shortcuts: Received clearListShortcuts request from tab', sender.tab?.id);
+    debugLog('Received clearListShortcuts request from tab', sender.tab?.id);
     // Immediately clear list info and create basic menu
     currentListInfo = null;
     createContextMenusWithoutList();

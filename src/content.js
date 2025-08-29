@@ -1,5 +1,27 @@
 // SharePoint Shortcuts Content Script
 
+// Debug logging system - only show logs in developer mode
+const isDevMode = () => {
+  try {
+    return chrome.runtime.getManifest().name.includes('Dev') || 
+           localStorage.getItem('sp-shortcuts-debug') === 'true';
+  } catch (error) {
+    return false;
+  }
+};
+
+const debugLog = (...args) => {
+  if (isDevMode()) {
+    console.log('SP Shortcuts:', ...args);
+  }
+};
+
+const debugError = (...args) => {
+  if (isDevMode()) {
+    console.error('SP Shortcuts:', ...args);
+  }
+};
+
 // Function to detect if we're on a SharePoint list page and get list info
 async function getListInfo() {
   try {
@@ -73,7 +95,7 @@ async function getListInfo() {
     if (constructedListUrlPath) {
       try {
         const listInfoUrl = `${siteUrl}/_api/web/GetList('${encodeURIComponent(constructedListUrlPath)}')`;
-        console.log('Attempting to fetch list info from:', listInfoUrl);
+        debugLog('Attempting to fetch list info from:', listInfoUrl);
         
         const response = await fetch(listInfoUrl, {
           headers: {
@@ -91,16 +113,16 @@ async function getListInfo() {
             listUrlPath: constructedListUrlPath
           };
         } else {
-          console.log('API response not OK:', response.status, response.statusText);
+          debugLog('API response not OK:', response.status, response.statusText);
         }
       } catch (apiError) {
-        console.log('Could not fetch list info via REST API:', apiError);
+        debugLog('Could not fetch list info via REST API:', apiError);
       }
     }
 
     return null;
   } catch (error) {
-    console.error('Error getting list info:', error);
+    debugError('Error getting list info:', error);
     return null;
   }
 }
@@ -150,7 +172,7 @@ function getSharePointSiteUrl() {
     return window.location.origin;
     
   } catch (error) {
-    console.error('Error extracting SharePoint site URL:', error);
+    debugError('Error extracting SharePoint site URL:', error);
     return window.location.origin;
   }
 }
@@ -164,19 +186,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else if (request.action === 'getListInfo') {
       // Handle async function with promise
       getListInfo().then(listInfo => {
+        debugLog('Successfully retrieved list info:', listInfo);
         sendResponse({ listInfo: listInfo });
       }).catch(error => {
-        console.error('Error in getListInfo:', error);
+        debugError('Error in getListInfo, falling back to site-level shortcuts only:', error);
+        // Explicitly return null to ensure site-level shortcuts are still shown
         sendResponse({ listInfo: null });
       });
       return true; // Keep the message channel open for async response
     }
   } catch (error) {
     if (error.message && error.message.includes('Extension context invalidated')) {
-      console.log('SP Shortcuts: Extension context invalidated in message listener');
+      debugLog('Extension context invalidated in message listener');
       return;
     }
-    console.error('SP Shortcuts: Error in message listener:', error);
+    debugError('Error in message listener:', error);
     sendResponse({ error: error.message });
   }
 });
@@ -191,12 +215,12 @@ if (window.location.hostname.includes('sharepoint.com')) {
       }
     } catch (error) {
       if (error.message && error.message.includes('Extension context invalidated')) {
-        console.log('SP Shortcuts: Extension context invalidated, stopping operations');
+        debugLog('Extension context invalidated, stopping operations');
         // Stop all intervals and listeners to prevent further errors
         clearInterval(urlCheckInterval);
         return;
       }
-      console.log('SP Shortcuts: Error sending runtime message:', error);
+      debugLog('Error sending runtime message:', error);
     }
   }
   
@@ -212,7 +236,7 @@ if (window.location.hostname.includes('sharepoint.com')) {
     if (newUrl !== currentUrl) {
       const oldUrl = currentUrl;
       currentUrl = newUrl;
-      console.log('SP Shortcuts: URL changed from', oldUrl, 'to', currentUrl);
+      debugLog('URL changed from', oldUrl, 'to', currentUrl);
       
       // Immediately notify background to clear list shortcuts
       safeRuntimeMessage({ action: 'clearListShortcuts' });
@@ -224,7 +248,7 @@ if (window.location.hostname.includes('sharepoint.com')) {
                            newUrl.toLowerCase().includes('allitems.aspx');
       
       if (wasOnSettingsPage && nowOnListPage) {
-        console.log('SP Shortcuts: Detected navigation from settings to list page - forcing refresh');
+        debugLog('Detected navigation from settings to list page - forcing refresh');
         // Force a context menu refresh immediately after clearing
         safeRuntimeMessage({ action: 'updateContextMenus' });
       }
@@ -241,14 +265,16 @@ if (window.location.hostname.includes('sharepoint.com')) {
       const listInfoChanged = JSON.stringify(newListInfo) !== JSON.stringify(lastListInfo);
       
       if (listInfoChanged) {
-        console.log('SP Shortcuts: List context changed from', lastListInfo, 'to', newListInfo);
+        debugLog('List context changed from', lastListInfo, 'to', newListInfo);
         lastListInfo = newListInfo;
-        // Notify background script to refresh context menus
+        // Notify background script to refresh context menus (will show site-level shortcuts even if newListInfo is null)
         safeRuntimeMessage({ action: 'updateContextMenus' });
       }
     } catch (error) {
-      console.log('SP Shortcuts: Error checking list context', error);
-      // Still notify to refresh menus in case of errors
+      debugLog('Error checking list context, ensuring site-level shortcuts are still available:', error);
+      // Clear list info and ensure site-level shortcuts are shown
+      lastListInfo = null;
+      // Always notify to refresh menus to ensure site-level shortcuts are displayed
       safeRuntimeMessage({ action: 'updateContextMenus' });
     }
   }
