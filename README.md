@@ -25,16 +25,11 @@ The extension comes with these built-in SharePoint shortcuts:
 - **Term Store Management** - Manage metadata terms
 - **Search Schema** - Configure search managed properties
 
-### List-Level Shortcuts - NEW
+### List-Level Shortcuts
 
-When you're on a SharePoint list page, additional shortcuts appear:
+When you're on a SharePoint list or library page, an additional shortcut appears:
 
 - **List Settings** - Access list configuration and settings
-- **List Permissions** - Manage list-specific permissions
-- **List Columns** - Manage list columns and field settings
-- **List Views** - Create and manage list views
-- **Workflow Settings** - Configure list workflows
-- **Validation Settings** - Set up list validation rules
 
 ## 🔧 How to Use
 
@@ -45,12 +40,12 @@ When you're on a SharePoint list page, additional shortcuts appear:
 3. **Select a shortcut** from the "SP Shortcuts" menu
 4. **The admin page opens** in a new tab with the correct site URL
 
-### List-Specific Features - NEW
+### List-Specific Features
 
 1. **Navigate to a SharePoint list** (e.g., Documents library, Custom lists, etc.)
 2. **Right-click anywhere** on the list page
-3. **See list-specific shortcuts** at the top of the menu, showing the list name
-4. **Click any list shortcut** to access that list's management page
+3. **See list-specific shortcut** at the top of the menu
+4. **Click the list shortcut** to access that list's settings page
 
 ### Managing Shortcuts
 
@@ -83,7 +78,6 @@ When you're on a SharePoint list page, additional shortcuts appear:
 ### Supported SharePoint Versions
 
 - **SharePoint Online** (Microsoft 365)
-- **SharePoint Server** (on-premises with SharePoint Online URLs)
 
 ### Supported Domains
 
@@ -97,6 +91,7 @@ When you're on a SharePoint list page, additional shortcuts appear:
 - **Context Menus**: To add right-click shortcuts
 - **Storage**: To save your custom shortcuts locally
 - **Active Tab**: To detect current SharePoint site (only when you use the extension)
+- **Tabs**: To create new tabs and access tab information
 
 ### Privacy Features
 
@@ -138,7 +133,6 @@ sp-shortcuts-extension/
 │   ├── options.js         # Settings page logic
 │   └── icons/             # Extension icons
 ├── README.md              # This file
-└── PRIVACY.md             # Privacy policy
 ```
 
 ### Key Features
@@ -146,7 +140,6 @@ sp-shortcuts-extension/
 - **Manifest V3**: Uses latest Chrome extension security model
 - **Service Worker**: Background script for context menu handling
 - **Content Script**: Injected into SharePoint pages for URL detection
-- **CSP Compliant**: No inline scripts, follows security best practices
 
 ## 🤝 Contributing
 
@@ -192,3 +185,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Custom shortcut management
 - Import/export functionality
 - Privacy-focused design
+
+### v1.1.0
+
+- Add `List settings` shortcut
