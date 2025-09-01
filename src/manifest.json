@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "SP Shortcuts",
-  "version": "1.0.0",
-  "description": "Quick access to SharePoint pages via right-click context menu",
+  "version": "1.1.0",
+  "description": "Quick access to SharePoint pages and list settings via right-click context menu",
   "permissions": [
     "contextMenus",
     "activeTab",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.sharepoint.com/*"

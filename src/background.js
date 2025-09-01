@@ -1,5 +1,27 @@
 // SharePoint Shortcuts Background Script
 
+// Debug logging system - only show logs in developer mode
+const isDevMode = () => {
+  try {
+    return chrome.runtime.getManifest().name.includes('Dev') || 
+           false; // Background script can't access localStorage, so default to false
+  } catch (error) {
+    return false;
+  }
+};
+
+const debugLog = (...args) => {
+  if (isDevMode()) {
+    console.log('SP Shortcuts:', ...args);
+  }
+};
+
+const debugError = (...args) => {
+  if (isDevMode()) {
+    console.error('SP Shortcuts:', ...args);
+  }
+};
+
 // Default SharePoint shortcuts
 const DEFAULT_SHORTCUTS = [
   {
@@ -39,9 +61,71 @@ const DEFAULT_SHORTCUTS = [
   }
 ];
 
+// List-specific shortcuts
+const LIST_SHORTCUTS = [
+  {
+    id: 'list-settings',
+    title: 'List Settings',
+    pathTemplate: '/_layouts/15/listedit.aspx?List={listId}'
+  }
+];
+
+// Store current list info globally for context menu creation
+let currentListInfo = null;
+let contextMenuUpdateTimeout = null;
+let isCreatingMenus = false; // Flag to prevent concurrent menu creation
+
+// Debounced context menu creation function
+function createContextMenusDebounced(tabId = null, delay = 50) {
+  // Clear any existing timeout
+  if (contextMenuUpdateTimeout) {
+    clearTimeout(contextMenuUpdateTimeout);
+  }
+  
+  // Set a new timeout
+  contextMenuUpdateTimeout = setTimeout(() => {
+    createContextMenus(tabId);
+  }, delay);
+}
+
+// Quick function to create basic menu without list shortcuts (for immediate navigation feedback)
+function createContextMenusWithoutList() {
+  return new Promise((resolve) => {
+    if (isCreatingMenus) {
+      resolve();
+      return;
+    }
+    
+    isCreatingMenus = true;
+    chrome.contextMenus.removeAll(() => {
+      setTimeout(() => {
+        // Create parent menu
+        chrome.contextMenus.create({
+          id: 'sp-shortcuts',
+          title: 'SP Shortcuts',
+          contexts: ['page'],
+          documentUrlPatterns: [
+            '*://*.sharepoint.com/*',
+            '*://*/*.sharepoint.com/*'
+          ]
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.log('Error creating parent menu:', chrome.runtime.lastError.message);
+          }
+          
+          // Only add site-level shortcuts (no list shortcuts)
+          createMenuItems(null);
+          isCreatingMenus = false;
+          resolve();
+        });
+      }, 10);
+    });
+  });
+}
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('SP Shortcuts extension installed');
+  debugLog('Extension installed');
   
   // Store default shortcuts if not already saved
   chrome.storage.sync.get(['shortcuts'], (result) => {
@@ -54,24 +138,106 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Create context menus
-function createContextMenus() {
-  // Remove existing menus first
-  chrome.contextMenus.removeAll(() => {
-    // Create parent menu
-    chrome.contextMenus.create({
-      id: 'sp-shortcuts',
-      title: 'SP Shortcuts',
-      contexts: ['page'],
-      documentUrlPatterns: [
-        '*://*.sharepoint.com/*',
-        '*://*/*.sharepoint.com/*'
-      ]
-    });
+async function createContextMenus(tabId = null) {
+  // Remove existing menus first and wait for completion
+  return new Promise((resolve) => {
+    if (isCreatingMenus) {
+      resolve();
+      return;
+    }
+    
+    isCreatingMenus = true;
+    chrome.contextMenus.removeAll(() => {
+      // Small delay to ensure cleanup is complete
+      setTimeout(() => {
+        // Create parent menu
+        chrome.contextMenus.create({
+          id: 'sp-shortcuts',
+          title: 'SP Shortcuts',
+          contexts: ['page'],
+          documentUrlPatterns: [
+            '*://*.sharepoint.com/*',
+            '*://*/*.sharepoint.com/*'
+          ]
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.log('Error creating parent menu:', chrome.runtime.lastError.message);
+            isCreatingMenus = false;
+            resolve();
+            return;
+          }
 
-    // Get shortcuts from storage and create menu items
-    chrome.storage.sync.get(['shortcuts'], (result) => {
-      const shortcuts = result.shortcuts || DEFAULT_SHORTCUTS;
+          // If we have a specific tab, get list info first
+          if (tabId) {
+            chrome.tabs.sendMessage(tabId, { action: 'getListInfo' }, (response) => {
+              if (chrome.runtime.lastError) {
+                // Handle case where content script isn't ready or page doesn't support it
+                debugLog('Could not get list info, showing site-level shortcuts only:', chrome.runtime.lastError.message);
+                currentListInfo = null;
+                createMenuItems(null); // This will create site-level shortcuts
+                isCreatingMenus = false;
+                resolve();
+              } else if (response && response.listInfo) {
+                debugLog('Got list info, showing list + site shortcuts');
+                currentListInfo = response.listInfo;
+                createMenuItems(response.listInfo);
+                isCreatingMenus = false;
+                resolve();
+              } else {
+                debugLog('No list info available, showing site-level shortcuts only');
+                currentListInfo = null;
+                createMenuItems(null); // This will create site-level shortcuts
+                isCreatingMenus = false;
+                resolve();
+              }
+            });
+          } else {
+            debugLog('No tab specified, showing site-level shortcuts');
+            createMenuItems(null); // This will create site-level shortcuts
+            isCreatingMenus = false;
+            resolve();
+          }
+        });
+      }, 10);
+    });
+  });
+}
+
+// Create menu items based on context
+function createMenuItems(listInfo) {
+  debugLog('Creating menu items with listInfo:', listInfo);
+  
+  // Get shortcuts from storage and create menu items
+  chrome.storage.sync.get(['shortcuts'], (result) => {
+    const shortcuts = result.shortcuts || DEFAULT_SHORTCUTS;
+    
+    try {
+      // Add list-specific shortcuts if we're on a list page
+      if (listInfo && listInfo.listTitle) {
+        console.log('SP Shortcuts: Adding list-specific shortcuts for:', listInfo.listTitle);
+
+        LIST_SHORTCUTS.forEach((shortcut) => {
+          // Only add shortcuts that work without listId, or when we have listId
+          if (!shortcut.pathTemplate.includes('{listId}') || listInfo.listId) {
+            chrome.contextMenus.create({
+              id: shortcut.id,
+              parentId: 'sp-shortcuts',
+              title: `${shortcut.title}`,
+              contexts: ['page'],
+              documentUrlPatterns: [
+                '*://*.sharepoint.com/*',
+                '*://*/*.sharepoint.com/*'
+              ]
+            }, () => {
+              if (chrome.runtime.lastError) {
+                console.log(`Error creating ${shortcut.id}:`, chrome.runtime.lastError.message);
+              }
+            });
+          }
+        });
+      }
       
+      // Add regular site shortcuts
       shortcuts.forEach((shortcut) => {
         chrome.contextMenus.create({
           id: shortcut.id,
@@ -82,6 +248,10 @@ function createContextMenus() {
             '*://*.sharepoint.com/*',
             '*://*/*.sharepoint.com/*'
           ]
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.log(`Error creating ${shortcut.id}:`, chrome.runtime.lastError.message);
+          }
         });
       });
 
@@ -91,6 +261,10 @@ function createContextMenus() {
         parentId: 'sp-shortcuts',
         type: 'separator',
         contexts: ['page']
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.log('Error creating separator:', chrome.runtime.lastError.message);
+        }
       });
 
       chrome.contextMenus.create({
@@ -98,8 +272,15 @@ function createContextMenus() {
         parentId: 'sp-shortcuts',
         title: 'Settings',
         contexts: ['page']
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.log('Error creating open-settings:', chrome.runtime.lastError.message);
+        }
       });
-    });
+      
+    } catch (error) {
+      console.error('Error in createMenuItems:', error);
+    }
   });
 }
 
@@ -110,7 +291,25 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     return;
   }
 
-  // Get shortcuts and find the clicked one
+  // Check if it's a list-specific shortcut
+  const listShortcut = LIST_SHORTCUTS.find(s => s.id === info.menuItemId);
+  
+  if (listShortcut) {
+    // Handle list-specific shortcuts
+    chrome.tabs.sendMessage(tab.id, { action: 'getListInfo' }, (response) => {
+      if (response && response.listInfo && response.listInfo.listId) {
+        const listInfo = response.listInfo;
+        const targetPath = listShortcut.pathTemplate.replace('{listId}', listInfo.listId);
+        const targetUrl = listInfo.webAbsoluteUrl + targetPath;
+        chrome.tabs.create({ url: targetUrl });
+      } else {
+        console.error('Could not determine list information or missing listId');
+      }
+    });
+    return;
+  }
+
+  // Handle regular site shortcuts
   chrome.storage.sync.get(['shortcuts'], (result) => {
     const shortcuts = result.shortcuts || DEFAULT_SHORTCUTS;
     const clickedShortcut = shortcuts.find(s => s.id === info.menuItemId);
@@ -134,14 +333,61 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Listen for storage changes to update context menus
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && changes.shortcuts) {
-    createContextMenus();
+    createContextMenusDebounced();
   }
+});
+
+// Listen for tab updates to refresh context menus based on page content
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.url && tab.url.includes('.sharepoint.com')) {
+    
+    // Immediately clear list shortcuts on navigation start
+    if (changeInfo.status === 'loading') {
+      debugLog('Navigation starting, immediately clearing list shortcuts for tab', tabId);
+      currentListInfo = null;
+      // Create basic menu without list shortcuts immediately
+      createContextMenusWithoutList();
+    }
+    
+    // Full refresh when page is complete
+    if (changeInfo.status === 'complete') {
+      debugLog('Page complete, full refresh for tab', tabId);
+      currentListInfo = null;
+      
+      // Use faster debounced update
+      createContextMenusDebounced(tabId, 100);
+    }
+  }
+});
+
+// Listen for tab activation to refresh context menus
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    if (tab.url && tab.url.includes('.sharepoint.com')) {
+      // Immediately clear list shortcuts when switching tabs
+      debugLog('Tab activated, immediately clearing list shortcuts for tab', activeInfo.tabId);
+      currentListInfo = null;
+      createContextMenusWithoutList();
+      
+      // Then do full refresh after shorter delay
+      createContextMenusDebounced(activeInfo.tabId, 100);
+    }
+  });
 });
 
 // Handle messages from content script or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'updateContextMenus') {
-    createContextMenus();
+    debugLog('Received updateContextMenus request from tab', sender.tab?.id);
+    // Clear cached list info when explicitly requested to update
+    currentListInfo = null;
+    createContextMenusDebounced(sender.tab?.id, 10);
+    sendResponse({ success: true });
+  } else if (request.action === 'clearListShortcuts') {
+    debugLog('Received clearListShortcuts request from tab', sender.tab?.id);
+    // Immediately clear list info and create basic menu
+    currentListInfo = null;
+    createContextMenusWithoutList();
     sendResponse({ success: true });
   }
 });

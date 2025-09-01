@@ -1,16 +1,19 @@
 # SP Shortcuts Extension
 
-A Chrome extension that provides quick access to SharePoint admin pages and commonly used features through right-click context menus.
+A Chrome extension that provides quick access to SharePoint admin pages and list settings through right-click context menus.
 
 ## ✨ Features
 
 - **Quick Access**: Right-click on any SharePoint page to access admin shortcuts
+- **List-Specific Shortcuts**: When on SharePoint lists, get direct access to list settings and management
 - **Customizable**: Add, edit, and remove shortcuts through the options page
-- **Smart Detection**: Automatically detects your SharePoint site and constructs the correct URLs
+- **Smart Detection**: Automatically detects your SharePoint site and lists, constructs correct URLs
 - **Privacy-Focused**: Minimal permissions, no data collection, works entirely offline
 - **Import/Export**: Backup and share your shortcuts configuration
 
 ## 🚀 Default Shortcuts
+
+### Site-Level Shortcuts
 
 The extension comes with these built-in SharePoint shortcuts:
 
@@ -22,6 +25,12 @@ The extension comes with these built-in SharePoint shortcuts:
 - **Term Store Management** - Manage metadata terms
 - **Search Schema** - Configure search managed properties
 
+### List-Level Shortcuts
+
+When you're on a SharePoint list or library page, an additional shortcut appears:
+
+- **List Settings** - Access list configuration and settings
+
 ## 🔧 How to Use
 
 ### Basic Usage
@@ -30,6 +39,13 @@ The extension comes with these built-in SharePoint shortcuts:
 2. **Right-click anywhere** on the page
 3. **Select a shortcut** from the "SP Shortcuts" menu
 4. **The admin page opens** in a new tab with the correct site URL
+
+### List-Specific Features
+
+1. **Navigate to a SharePoint list** (e.g., Documents library, Custom lists, etc.)
+2. **Right-click anywhere** on the list page
+3. **See list-specific shortcut** at the top of the menu
+4. **Click the list shortcut** to access that list's settings page
 
 ### Managing Shortcuts
 
@@ -62,7 +78,6 @@ The extension comes with these built-in SharePoint shortcuts:
 ### Supported SharePoint Versions
 
 - **SharePoint Online** (Microsoft 365)
-- **SharePoint Server** (on-premises with SharePoint Online URLs)
 
 ### Supported Domains
 
@@ -76,6 +91,7 @@ The extension comes with these built-in SharePoint shortcuts:
 - **Context Menus**: To add right-click shortcuts
 - **Storage**: To save your custom shortcuts locally
 - **Active Tab**: To detect current SharePoint site (only when you use the extension)
+- **Tabs**: To create new tabs and access tab information
 
 ### Privacy Features
 
@@ -117,7 +133,6 @@ sp-shortcuts-extension/
 │   ├── options.js         # Settings page logic
 │   └── icons/             # Extension icons
 ├── README.md              # This file
-└── PRIVACY.md             # Privacy policy
 ```
 
 ### Key Features
@@ -125,7 +140,6 @@ sp-shortcuts-extension/
 - **Manifest V3**: Uses latest Chrome extension security model
 - **Service Worker**: Background script for context menu handling
 - **Content Script**: Injected into SharePoint pages for URL detection
-- **CSP Compliant**: No inline scripts, follows security best practices
 
 ## 🤝 Contributing
 
@@ -171,3 +185,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Custom shortcut management
 - Import/export functionality
 - Privacy-focused design
+
+### v1.1.0
+
+- Add `List settings` shortcut
