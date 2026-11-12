@@ -37,7 +37,7 @@ function displayShortcuts() {
         <div class="shortcut-item ${currentEditingIndex === index ? 'editing' : ''}" data-index="${index}">
             <div class="shortcut-info">
                 <div class="shortcut-title">${escapeHtml(shortcut.title)}</div>
-                <div class="shortcut-path">${escapeHtml(shortcut.path)}</div>
+                <div class="shortcut-path">${shortcut.target === 'tenant' ? '<span class="target-badge">Tenant root</span> ' : shortcut.target === 'admin' ? '<span class="target-badge">SharePoint admin center</span> ' : ''}${escapeHtml(shortcut.path)}</div>
                 ${shortcut.description ? `<div class="shortcut-description">${escapeHtml(shortcut.description)}</div>` : ''}
             </div>
             <div class="shortcut-actions">
@@ -148,6 +148,7 @@ function setupTemplates() {
             
             document.getElementById('shortcut-title').value = title;
             document.getElementById('shortcut-path').value = path;
+            document.getElementById('shortcut-target').value = btn.getAttribute('data-target') || 'site';
             document.getElementById('shortcut-description').value = '';
             
             // Focus on title field for quick editing
@@ -165,6 +166,7 @@ function handleFormSubmit(event) {
     
     const title = document.getElementById('shortcut-title').value.trim();
     const path = document.getElementById('shortcut-path').value.trim();
+    const target = document.getElementById('shortcut-target').value;
     const description = document.getElementById('shortcut-description').value.trim();
     
     if (!title || !path) {
@@ -189,6 +191,7 @@ function handleFormSubmit(event) {
         id: currentEditingIndex >= 0 ? shortcuts[currentEditingIndex].id : generateId(),
         title: title,
         path: normalizedPath,
+        target: target,
         description: description || undefined
     };
     
@@ -214,6 +217,7 @@ function editShortcut(index) {
     
     document.getElementById('shortcut-title').value = shortcut.title;
     document.getElementById('shortcut-path').value = shortcut.path;
+    document.getElementById('shortcut-target').value = shortcut.target || 'site';
     document.getElementById('shortcut-description').value = shortcut.description || '';
     
     // Update UI
@@ -324,6 +328,18 @@ function resetToDefaults() {
             title: 'Search Schema',
             path: '/_layouts/15/listmanagedproperties.aspx?level=sitecol',
             description: 'Configure search managed properties'
+        },
+        {
+            id: 'sp-tenant-search-schema',
+            title: 'Tenant Search Schema (Content Type Hub)',
+            target: 'tenant',
+            path: '/sites/contenttypehub/_layouts/15/listmanagedproperties.aspx'
+        },
+        {
+            id: 'sp-user-profiles',
+            title: 'User Profiles (Admin)',
+            target: 'admin',
+            path: '/_layouts/15/TenantProfileAdmin/ManageUserProfileServiceApplication.aspx'
         }
     ];
     
@@ -343,7 +359,7 @@ function exportShortcuts() {
     const exportData = {
         version: '1.0',
         exportDate: new Date().toISOString(),
-        shortcuts: shortcuts
+        shortcuts: shortcuts.map(shortcut => ({ ...shortcut, target: shortcut.target === undefined ? 'site' : shortcut.target }))
     };
     
     const dataStr = JSON.stringify(exportData, null, 2);
@@ -387,6 +403,9 @@ function importShortcuts(event) {
             for (const shortcut of importedShortcuts) {
                 if (!shortcut.id || !shortcut.title || !shortcut.path) {
                     throw new Error('Invalid shortcut format: missing required fields');
+                }
+                if (shortcut.target !== undefined && !['site', 'tenant', 'admin'].includes(shortcut.target)) {
+                    throw new Error('Invalid shortcut target');
                 }
             }
             
