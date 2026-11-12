@@ -25,6 +25,13 @@ The extension comes with these built-in SharePoint shortcuts:
 - **Term Store Management** - Manage metadata terms
 - **Search Schema** - Configure search managed properties
 
+### Tenant and Admin Shortcuts
+
+- **Tenant Search Schema (Content Type Hub)** - Configure tenant search managed properties
+- **User Profiles (Admin)** - Manage user profiles in the SharePoint admin center
+
+These are available as quick templates for existing configurations, or by resetting to defaults.
+
 ### List-Level Shortcuts
 
 When you're on a SharePoint list or library page, an additional shortcut appears:
@@ -56,7 +63,7 @@ When you're on a SharePoint list or library page, an additional shortcut appears
 
 2. **Add New Shortcuts**:
    - Click "Add New Shortcut"
-   - Enter title, path, and description
+   - Enter a title and path, choose a target site, and optionally add a description
    - Click "Save"
 
 3. **Edit Existing Shortcuts**:
@@ -66,6 +73,11 @@ When you're on a SharePoint list or library page, an additional shortcut appears
 4. **Import/Export**:
    - Use "Export Shortcuts" to backup your configuration
    - Use "Import Shortcuts" to restore or share configurations
+
+The path is relative to the selected target: **Current site** uses the site you're viewing,
+**Tenant root** uses `https://yourcompany.sharepoint.com`, and **SharePoint admin center**
+uses `https://yourcompany-admin.sharepoint.com`. Existing shortcuts without a target use
+Current site. Imported and exported JSON supports `site`, `tenant`, and `admin` targets.
 
 ## 🌐 Compatibility
 

@@ -58,6 +58,18 @@ const DEFAULT_SHORTCUTS = [
     id: 'sp-search-schema',
     title: 'Search Schema',
     path: '/_layouts/15/listmanagedproperties.aspx?level=sitecol'
+  },
+  {
+    id: 'sp-tenant-search-schema',
+    title: 'Tenant Search Schema (Content Type Hub)',
+    target: 'tenant',
+    path: '/sites/contenttypehub/_layouts/15/listmanagedproperties.aspx'
+  },
+  {
+    id: 'sp-user-profiles',
+    title: 'User Profiles (Admin)',
+    target: 'admin',
+    path: '/_layouts/15/TenantProfileAdmin/ManageUserProfileServiceApplication.aspx'
   }
 ];
 
@@ -315,6 +327,22 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     const clickedShortcut = shortcuts.find(s => s.id === info.menuItemId);
     
     if (clickedShortcut) {
+      if (clickedShortcut.target === 'tenant' || clickedShortcut.target === 'admin') {
+        try {
+          const hostname = new URL(tab.url).hostname;
+          const match = hostname.match(/^([a-z0-9-]+)\.sharepoint\.com$/i);
+          const tenant = match && match[1].replace(/-(admin|my)$/i, '');
+          if (!tenant) {
+            throw new Error('Invalid SharePoint tenant hostname');
+          }
+          const suffix = clickedShortcut.target === 'admin' ? '-admin' : '';
+          chrome.tabs.create({ url: `https://${tenant}${suffix}.sharepoint.com${clickedShortcut.path}` });
+        } catch (error) {
+          console.error('Could not determine SharePoint tenant URL:', error);
+        }
+        return;
+      }
+
       // Get the SharePoint site URL from current tab
       chrome.tabs.sendMessage(tab.id, {
         action: 'getSiteUrl'

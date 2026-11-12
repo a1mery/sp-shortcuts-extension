@@ -78,6 +78,15 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="shortcut-target" class="form-label">Target site</label>
+                            <select id="shortcut-target" class="form-input">
+                                <option value="site">Current site</option>
+                                <option value="tenant">Tenant root</option>
+                                <option value="admin">SharePoint admin center</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="shortcut-path" class="form-label">
                                 <span class="label-text">Path</span>
                                 <span class="label-required">*</span>
@@ -90,7 +99,7 @@
                                 required
                             >
                             <small class="form-help">
-                                Path relative to SharePoint site root. Examples:<br>
+                                Path relative to the selected target site. Examples:<br>
                                 • <code>/_layouts/15/settings.aspx</code> (Site Settings)<br>
                                 • <code>/Lists/MyList</code> (Custom List)<br>
                                 • <code>/_catalogs/apps</code> (App Catalog)
@@ -143,6 +152,14 @@
                             <button class="template-btn" data-title="Site Languages" data-path="/_layouts/15/muisetng.aspx">
                                 <span class="template-icon">📄</span>
                                 Site languages
+                            </button>
+                            <button class="template-btn" data-title="Tenant Search Schema (Content Type Hub)" data-target="tenant" data-path="/sites/contenttypehub/_layouts/15/listmanagedproperties.aspx">
+                                <span class="template-icon">🔍</span>
+                                Tenant Search Schema
+                            </button>
+                            <button class="template-btn" data-title="User Profiles (Admin)" data-target="admin" data-path="/_layouts/15/TenantProfileAdmin/ManageUserProfileServiceApplication.aspx">
+                                <span class="template-icon">👤</span>
+                                User Profiles (Admin)
                             </button>
                         </div>
                     </div>
